@@ -1,0 +1,422 @@
+---
+title: "Semester Stays Analysis"
+author: "Shashank Raj"
+date: "2023-12-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(readxl)
+
+# Load the dataset
+data <- read_excel("SemesterStays_Survey_Responses (1) (1).xlsx")
+
+# Bar Plot for Education Level
+p <- ggplot(data, aes(x = `Education Level`)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Distribution of Education Level", x = "Education Level", y = "Count")
+
+# Make it interactive
+ggplotly(p)
+
+```
+
+
+```{r}
+# Stacked Bar Plot for Housing Preferences by Age Range
+p <- ggplot(data, aes(x = `Living Situation`, fill = `Age Range`)) +
+  geom_bar(position = "fill") +
+  labs(title = "Housing Preferences by Age Range", x = "Living Situation", y = "Proportion")
+
+# Make it interactive
+ggplotly(p)
+
+```
+
+```{r}
+# Convert Rent Budget to a categorical variable for better plotting
+data$`Rent Budget` <- factor(data$`Rent Budget`, levels = c("Less than $500", "$500 - $1000", "$1001 - $1500", "$1501 - $2000", "Over $2000"))
+
+# Boxplot for Rent Budget by Education Level
+p <- ggplot(data, aes(x = `Education Level`, y = `Rent Budget`)) +
+  geom_boxplot() +
+  labs(title = "Rent Budget by Education Level", x = "Education Level", y = "Rent Budget")
+
+# Make it interactive
+ggplotly(p)
+
+```
+
+
+```{r}
+# Counting the frequency of each awareness level
+awareness_counts <- data %>%
+  group_by(`Awareness of Semester-Based Leasing`) %>%
+  summarise(Count = n())
+
+# Create a pie chart using plotly directly
+p <- plot_ly(awareness_counts, labels = ~`Awareness of Semester-Based Leasing`, values = ~Count, type = 'pie',
+             textinfo = 'label+percent',
+             insidetextorientation = 'radial')
+
+# Add layout
+p <- p %>% layout(title = 'Awareness of Semester-Based Leasing')
+
+p
+```
+
+```{r}
+# Load necessary library
+library(dplyr)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Number of responses to simulate
+n <- 10000
+
+# Simulating data based on assumed distributions
+simulated_data <- tibble(
+  AgeRange = sample(c("18-22", "23-26"), n, replace = TRUE, prob = c(0.6, 0.4)),
+  EducationLevel = sample(c("Undergraduate", "Graduate"), n, replace = TRUE, prob = c(0.7, 0.3)),
+  LivingSituation = sample(c("Off-campus apartment/house", "On-campus housing", "Living with family"), n, replace = TRUE, prob = c(0.4, 0.3, 0.3)),
+  RentBudget = sample(c("Less than $500", "$500 - $1000", "$1001 - $1500", "Over $1500"), n, replace = TRUE, prob = c(0.2, 0.3, 0.3, 0.2)),
+  ImportantHousingFactors = lapply(1:n, function(x) sample(c("Proximity to campus", "Roommate preferences", "Safety", "Amenities"), sample(1:4, 1), replace = FALSE)),
+  AwarenessSemesterLeasing = sample(c("Very aware", "Somewhat aware", "Neutral", "Not aware"), n, replace = TRUE, prob = c(0.25, 0.25, 0.25, 0.25)),
+  LikelihoodSemesterHousing = sample(c("Very likely", "Likely", "Neutral", "Unlikely", "Very unlikely"), n, replace = TRUE, prob = c(0.2, 0.2, 0.2, 0.2, 0.2)),
+  OpennessSubleasing = sample(c("Definitely open", "Maybe open", "Neutral", "Not open"), n, replace = TRUE, prob = c(0.25, 0.25, 0.25, 0.25)),
+  NeedsMetCurrentHousing = sample(c("Mostly meets my needs", "Somewhat meets my needs", "Barely meets my needs", "Does not meet my needs"), n, replace = TRUE, prob = c(0.25, 0.25, 0.25, 0.25)),
+  ChallengesCurrentHousing = lapply(1:n, function(x) sample(c("High cost", "Safety concerns", "Distance from campus", "Inadequate amenities"), sample(1:4, 1), replace = FALSE)),
+  PreferredFeaturesSemesterLeasing = lapply(1:n, function(x) sample(c("Roommate matching service", "Safety ratings", "Price range options", "Proximity to campus filter", "Community events and networking opportunities"), sample(1:5, 1), replace = FALSE)),
+  ImportanceCommunityEvents = sample(c("Not important at all", "Not very important", "Somewhat important", "Very important"), n, replace = TRUE, prob = c(0.25, 0.25, 0.25, 0.25))
+)
+
+# Viewing the first few rows of the simulated data
+head(simulated_data)
+
+
+```
+
+```{r}
+library(ggplot2)
+library(plotly)
+library(dplyr)
+```
+
+
+```{r}
+p_faceted <- ggplot(simulated_data, aes(x = EducationLevel, fill = EducationLevel)) + 
+             geom_bar() + 
+             facet_wrap(~ AgeRange) +
+             theme_minimal() +
+             labs(title = "Education Level Distribution by Age Range", x = "Education Level", y = "Count")
+interactive_p_faceted <- ggplotly(p_faceted)
+interactive_p_faceted
+```
+
+```{r}
+long_data <- simulated_data %>%
+             tidyr::unnest(ImportantHousingFactors) %>%
+             count(ImportantHousingFactors, EducationLevel)
+
+p_stacked <- ggplot(long_data, aes(x = ImportantHousingFactors, y = n, fill = EducationLevel)) + 
+             geom_bar(stat = "identity", position = "stack") +
+             theme_minimal() +
+             labs(title = "Important Housing Factors by Education Level", x = "Housing Factors", y = "Count") +
+             theme(axis.text.x = element_text(angle = 45, hjust = 1)) # To improve readability of x-axis labels
+
+interactive_p_stacked <- ggplotly(p_stacked)
+interactive_p_stacked
+```
+
+
+
+```{r}
+# Function to convert list columns to string
+convert_list_to_string <- function(lst) {
+  sapply(lst, function(x) paste(x, collapse = ", "))
+}
+
+# Apply this function to the list columns
+simulated_data$ImportantHousingFactors <- convert_list_to_string(simulated_data$ImportantHousingFactors)
+simulated_data$ChallengesCurrentHousing <- convert_list_to_string(simulated_data$ChallengesCurrentHousing)
+simulated_data$PreferredFeaturesSemesterLeasing <- convert_list_to_string(simulated_data$PreferredFeaturesSemesterLeasing)
+
+# Now save the dataframe to a CSV file
+write.csv(simulated_data, "simulated_data.csv", row.names = FALSE)
+```
+
+```{r}
+# Load required libraries
+library(ggplot2)
+library(plotly)
+library(shiny)
+library(dplyr)
+
+# Load the data
+data <- read.csv("simulated_data.csv")
+
+# Convert categorical variables to factors
+data$AgeRange <- as.factor(data$AgeRange)
+data$EducationLevel <- as.factor(data$EducationLevel)
+data$LivingSituation <- as.factor(data$LivingSituation)
+data$RentBudget <- as.factor(data$RentBudget)
+
+# Shiny UI
+ui <- fluidPage(
+    titlePanel("Enhanced Interactive Housing Satisfaction Analysis"),
+    sidebarLayout(
+        sidebarPanel(
+            selectInput("xVariable", "Choose X-axis Variable", 
+                        choices = names(data)),
+            selectInput("yVariable", "Choose Y-axis Variable", 
+                        choices = names(data)),
+            selectInput("colorVariable", "Choose Color Variable", 
+                        choices = c("None", names(data))),
+            selectInput("sizeVariable", "Choose Size Variable", 
+                        choices = c("None", names(data))),
+            selectInput("facetVariable", "Choose Facet Variable", 
+                        choices = c("None", names(data))),
+            sliderInput("alpha", "Adjust Point Opacity", 
+                        min = 0, max = 1, value = 0.7),
+            sliderInput("pointSize", "Adjust Point Size", 
+                        min = 1, max = 10, value = 4)
+        ),
+        mainPanel(
+            plotlyOutput("interactivePlot")
+        )
+    )
+)
+
+# Shiny server logic
+server <- function(input, output) {
+    output$interactivePlot <- renderPlotly({
+        # Dynamic variable selection
+        x_var <- input$xVariable
+        y_var <- input$yVariable
+        color_var <- input$colorVariable
+        size_var <- input$sizeVariable
+        facet_var <- input$facetVariable
+        alpha_value <- input$alpha
+        point_size <- input$pointSize
+
+        # Create ggplot
+        p <- ggplot(data, aes_string(x = x_var, y = y_var)) +
+            geom_point(alpha = alpha_value) +
+            theme_minimal() +
+            labs(x = x_var, y = y_var, color = color_var, size = size_var)
+
+        # Add color if not "None" and appropriate scale
+        if (color_var != "None") {
+            p <- p + aes_string(color = color_var)
+            if (is.factor(data[[color_var]])) {
+                p <- p + scale_color_discrete(name = color_var)
+            } else {
+                p <- p + scale_color_continuous(name = color_var)
+            }
+        }
+
+        # Add size if not "None" and is a continuous variable
+        if (size_var != "None" && !is.factor(data[[size_var]])) {
+            p <- p + aes_string(size = size_var) +
+                   scale_size_continuous(range = c(1, point_size), name = size_var)
+        }
+
+        # Add faceting if selected and not "None"
+        if (facet_var != "None") {
+            p <- p + facet_wrap(as.formula(paste('~', facet_var)))
+        }
+
+        # Enhance the theme for better aesthetics
+        p <- p + theme(
+            plot.background = element_rect(fill = "white"),
+            panel.background = element_rect(fill = "white"),
+            panel.grid.major = element_line(color = "grey80"),
+            panel.grid.minor = element_blank(),
+            legend.background = element_rect(fill = "white"),
+            legend.box.background = element_rect(fill = "white")
+        )
+
+        # Convert ggplot to a plotly object
+        ggplotly(p, tooltip = c("x", "y", color_var, size_var))
+    })
+}
+
+# Run the Shiny app
+shinyApp(ui, server)
+```
+
+```{r}
+# Load required libraries
+library(ggplot2)
+library(plotly)
+library(shiny)
+library(dplyr)
+
+# Load the data
+data <- read.csv("simulated_data.csv")
+
+# Convert categorical variables to factors
+data$AgeRange <- as.factor(data$AgeRange)
+data$EducationLevel <- as.factor(data$EducationLevel)
+data$LivingSituation <- as.factor(data$LivingSituation)
+data$RentBudget <- as.factor(data$RentBudget)
+
+# Shiny UI
+ui <- fluidPage(
+    titlePanel("Interactive Housing Satisfaction Analysis"),
+    sidebarLayout(
+        sidebarPanel(
+            selectInput("xVariable", "Choose X-axis Variable", 
+                        choices = c("AgeRange", "EducationLevel", "LivingSituation", "RentBudget")),
+            selectInput("yVariable", "Choose Y-axis Variable", 
+                        choices = c("SatisfactionScore")),
+            selectInput("colorVariable", "Choose Color Variable", 
+                        choices = c("None", "AgeRange", "EducationLevel", "LivingSituation", "RentBudget"))
+        ),
+        mainPanel(
+            plotlyOutput("interactivePlot")
+        )
+    )
+)
+
+# Shiny server logic
+server <- function(input, output) {
+    output$interactivePlot <- renderPlotly({
+        # Dynamic variable selection
+        x_var <- input$xVariable
+        y_var <- input$yVariable
+        color_var <- input$colorVariable
+
+        # Create ggplot
+        p <- ggplot(data, aes_string(x = x_var, y = y_var)) +
+            geom_point() +
+            theme_minimal() +
+            labs(x = x_var, y = y_var)
+
+        # Add color if not "None"
+        if (color_var != "None") {
+            p <- p + aes_string(color = color_var)
+        }
+
+        # Convert ggplot to a plotly object
+        ggplotly(p)
+    })
+}
+
+# Run the Shiny app
+shinyApp(ui, server)
+
+```
+
+
+```{r}
+# Load required libraries
+library(caret)
+library(doParallel)
+library(shiny)
+
+# Set up parallel processing
+no_cores <- detectCores() - 1
+registerDoParallel(cores=no_cores)
+
+# Load the data
+data <- read.csv("simulated_data.csv")
+
+# Data Preprocessing
+# Convert categorical variables to factors
+data$AgeRange <- as.factor(data$AgeRange)
+data$EducationLevel <- as.factor(data$EducationLevel)
+data$LivingSituation <- as.factor(data$LivingSituation)
+data$RentBudget <- as.factor(data$RentBudget)
+data$ImportantHousingFactors <- as.factor(data$ImportantHousingFactors)
+data$AwarenessSemesterLeasing <- as.factor(data$AwarenessSemesterLeasing)
+data$LikelihoodSemesterHousing <- as.factor(data$LikelihoodSemesterHousing)
+data$OpennessSubleasing <- as.factor(data$OpennessSubleasing)
+data$NeedsMetCurrentHousing <- as.factor(data$NeedsMetCurrentHousing)
+data$ChallengesCurrentHousing <- as.factor(data$ChallengesCurrentHousing)
+data$PreferredFeaturesSemesterLeasing <- as.factor(data$PreferredFeaturesSemesterLeasing)
+data$ImportanceCommunityEvents <- as.factor(data$ImportanceCommunityEvents)
+
+# Replace missing values if necessary
+# data[is.na(data)] <- mean(data, na.rm = TRUE)
+
+# Model Selection and Training
+fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+model <- train(SatisfactionScore ~ ., data = data, method = "lm", trControl = fitControl)
+
+# Save the model
+saveRDS(model, file = "model.rds")
+
+# Shiny UI
+ui <- fluidPage(
+    titlePanel("Housing Satisfaction Prediction"),
+    sidebarLayout(
+        sidebarPanel(
+            selectInput("ageRange", "Age Range", choices = levels(data$AgeRange)),
+            selectInput("educationLevel", "Education Level", choices = levels(data$EducationLevel)),
+            selectInput("livingSituation", "Living Situation", choices = levels(data$LivingSituation)),
+            selectInput("rentBudget", "Rent Budget", choices = levels(data$RentBudget)),
+            selectInput("importantHousingFactors", "Important Housing Factors", choices = levels(data$ImportantHousingFactors)),
+            selectInput("awarenessSemesterLeasing", "Awareness of Semester Leasing", choices = levels(data$AwarenessSemesterLeasing)),
+            selectInput("likelihoodSemesterHousing", "Likelihood of Semester Housing", choices = levels(data$LikelihoodSemesterHousing)),
+            selectInput("opennessSubleasing", "Openness to Subleasing", choices = levels(data$OpennessSubleasing)),
+            selectInput("needsMetCurrentHousing", "Needs Met by Current Housing", choices = levels(data$NeedsMetCurrentHousing)),
+            selectInput("challengesCurrentHousing", "Challenges with Current Housing", choices = levels(data$ChallengesCurrentHousing)),
+            selectInput("preferredFeaturesSemesterLeasing", "Preferred Features in Semester Leasing", choices = levels(data$PreferredFeaturesSemesterLeasing)),
+            selectInput("importanceCommunityEvents", "Importance of Community Events", choices = levels(data$ImportanceCommunityEvents)),
+            actionButton("predict", "Predict")
+        ),
+        mainPanel(
+            textOutput("prediction")
+        )
+    )
+)
+
+# Shiny server logic
+server <- function(input, output) {
+
+    predictEvent <- eventReactive(input$predict, {
+        # Load the model
+        model <- readRDS("model.rds")
+
+        # Create a data frame from input values
+        new_data <- data.frame(
+            AgeRange = input$ageRange,
+            EducationLevel = input$educationLevel,
+            LivingSituation = input$livingSituation,
+            RentBudget = input$rentBudget,
+            ImportantHousingFactors = input$importantHousingFactors,
+            AwarenessSemesterLeasing = input$awarenessSemesterLeasing,
+            LikelihoodSemesterHousing = input$likelihoodSemesterHousing,
+            OpennessSubleasing = input$opennessSubleasing,
+            NeedsMetCurrentHousing = input$needsMetCurrentHousing,
+            ChallengesCurrentHousing = input$challengesCurrentHousing,
+            PreferredFeaturesSemesterLeasing = input$preferredFeaturesSemesterLeasing,
+            ImportanceCommunityEvents = input$importanceCommunityEvents,
+            stringsAsFactors = TRUE
+        )
+
+        # Predict
+        prediction <- predict(model, new_data)
+        return(prediction)
+    })
+
+    output$prediction <- renderText({
+        prediction <- predictEvent()
+        paste("Predicted Satisfaction Score: ", prediction)
+    })
+}
+
+# Run the Shiny app
+shinyApp(ui, server)
+
+```
+
